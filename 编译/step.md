@@ -1,5 +1,5 @@
-gcc/g++ 命令：g++ -E mstore.cpp > mstore.i
+gcc/g++ 命令：g++ -E start.cpp > start.i
 
-gcc/g++ 命令：g++ -S mstore.i > mstore.s
+gcc/g++ 命令：g++ -S start.i > start.s
 
-gcc/g++ 命令：g++ -c mstore.s > mstore.o
+gcc/g++ 命令：g++ -c start.s > start.o
