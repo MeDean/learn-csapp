@@ -1,3 +1,3 @@
 gcc -c start.cpp -o start.o
 
-g++ -L /usr/include/c++/5/iostream
+g++ -L /usr/include/c++/5/iostream start.o -o start

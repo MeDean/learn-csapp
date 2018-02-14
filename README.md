@@ -13,12 +13,65 @@
     将预处理后的文件转换成汇编语言,生成文件.s[编译器egcs]                
     start.s:一个ASCII码的汇编语言文件
 
-    gcc/g++ 命令：g++ -S start.i -o(>) start.s 
+    gcc/g++ 命令：g++ -S start.i -o(>) start.s
+
+    mstore.c
+    
+        long mult2(long ,long);
+        void multstore(long x,long y,long *dest){
+            long t = mult2(x,y);
+            *dest = t; 
+        }
+
+    gcc -Og -S mstore.c > mstore.s
+
+    mstore.s
+
+        multstore:
+        .LFB0:
+            .cfi_startproc
+            pushq	%rbx
+            .cfi_def_cfa_offset 16
+            .cfi_offset 3, -16
+            movq	%rdx, %rbx
+            call	mult2
+            movq	%rax, (%rbx)
+            popq	%rbx
+            .cfi_def_cfa_offset 8
+            ret
+            .cfi_endproc 
+    
+    所有以'.'开头的行都是指导汇编器和链接器工作的伪指令，可以忽略。
+    上面左面有14个十六进制字节值分成若干组,每组1~5个字节.每组都是一个指令,右边是等价的汇编语言.
+    * x86-64指令长度从1-16个字节不等
+    * 设计指令格式的方式是，从某个给定位置开始，可以将字节唯一地解码成机器指令。
+    * 反汇编器只是基于机器代码中的字节序列来确定汇编代码，不需要访问改程序的源代码或汇编代码
+    * 反汇编器使用的指令命名规则与GCC生成的汇编代码使用的有些区别。如反汇编器给call和ret指令添加了'q'后缀，同样省略这些后缀也没问题
+
 * 生成目标文件
     汇编变为目标代码(机器代码)生成.o的二进制的目标文件[汇编器as:汇编语言翻译为机器语言的程序]    
     start.o:一个可重定位目标文件
 
     gcc/g++ 命令：g++ -c start.s > start.o
+
+    对mstore.o进行gdb调试:x/14xb multstore,即显示14个16进制数字
+
+        0x0 <multstore>:0x53	0x48	0x89	0xd3	0xe8	0x00	0x00	0x00
+        0x8 <multstore+8>:0x00	0x48	0x89	0x03	0x5b	0xc3
+
+    对mstore.o反汇编：objdump -d mstore.o
+
+        0000000000000000 <multstore>:
+        Offset Bytes               Equivalent assembly language
+            0:	53                   	push   %rbx
+            1:	48 89 d3             	mov    %rdx,%rbx
+            4:	e8 00 00 00 00       	callq  9 <multstore+0x9>
+            9:	48 89 03             	mov    %rax,(%rbx)
+            c:	5b                   	pop    %rbx
+            d:	c3                   	retq  
+
+    
+    查看二进制文件的方法vim -b mstore.o   加上-b参数，以二进制打开，然后输入命令  :%!xxd -g 1  切换到十六进制模式显示        
 
     目标代码是机器代码的一种形式，它包含所有指令的二进制表示，但是还没有填入全局值的地址
 ## 2. 链接
@@ -31,54 +84,6 @@
 
 gcc/g++ 命令：g++ start.o > start -L /usr/include/c++/5/iostream
 
-mstore.c
-
-    mstore.c
-    long mult2(long ,long);
-    void multstore(long x,long y,long *dest){
-        long t = mult2(x,y);
-        *dest = t; 
-    }
-gcc -Og -S mstore.c > mstore.s
-
-mstore.s
-
-    multstore:
-    .LFB0:
-        .cfi_startproc
-        pushq	%rbx
-        .cfi_def_cfa_offset 16
-        .cfi_offset 3, -16
-        movq	%rdx, %rbx
-        call	mult2
-        movq	%rax, (%rbx)
-        popq	%rbx
-        .cfi_def_cfa_offset 8
-        ret
-        .cfi_endproc
-
-对mstore.o进行gdb调试:x/14xb multstore
-即显示14个16进制数字
-
-    0x0 <multstore>:0x53	0x48	0x89	0xd3	0xe8	0x00	0x00	0x00
-    0x8 <multstore+8>:0x00	0x48	0x89	0x03	0x5b	0xc3
-对mstore.o反汇编：objdump -d mstore.o
-
-    0000000000000000 <multstore>:
-     Offset Bytes               Equivalent assembly language
-        0:	53                   	push   %rbx
-        1:	48 89 d3             	mov    %rdx,%rbx
-        4:	e8 00 00 00 00       	callq  9 <multstore+0x9>
-        9:	48 89 03             	mov    %rax,(%rbx)
-        c:	5b                   	pop    %rbx
-        d:	c3                   	retq  
-
-所有以'.'开头的行都是指导汇编器和链接器工作的伪指令，可以忽略。
-上面左面有14个十六进制字节值分成若干组,每组1~5个字节.每组都是一个指令,右边是等价的汇编语言.
-* x86-64指令长度从1-16个字节不等
-* 设计指令格式的方式是，从某个给定位置开始，可以将字节唯一地解码成机器指令。
-* 反汇编器只是基于机器代码中的字节序列来确定汇编代码，不需要访问改程序的源代码或汇编代码
-* 反汇编器使用的指令命名规则与GCC生成的汇编代码使用的有些区别。如反汇编器给call和ret指令添加了'q'后缀，同样省略这些后缀也没问题
 
 ***
 main.c
